@@ -1,0 +1,9 @@
+{
+  "version": "2026.10.29",
+  "tag": "v2026.10.29",
+  "repository": "https://github.com/Jiayi-Liao/datumwell-skills",
+  "skills": [
+    "benchmark-searcher",
+    "paper-reader"
+  ]
+}

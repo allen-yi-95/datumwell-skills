@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@@TITLE@@</title>
+<style>
+:root{color-scheme:light dark;--bg:#fafbf9;--surface:#fff;--ink:#202d28;--muted:#5e6b64;--line:#dce3dd;--accent:#23694e;--hover:#f2f6f2;--header:#edf2ed}
+@media(prefers-color-scheme:dark){:root{--bg:#161c19;--surface:#1d2520;--ink:#e3ece5;--muted:#a8b7ad;--line:#3b483e;--accent:#9dd3b6;--hover:#253229;--header:#29362d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{padding:28px clamp(16px,3vw,52px) 40px;max-width:2600px;margin:auto}h1{font-size:clamp(25px,3vw,35px);line-height:1.2;letter-spacing:-.025em;margin:0 0 18px;font-weight:650}h2{font-size:17px;margin:24px 0 8px}p{margin:0 0 12px}a{color:var(--accent);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}code{font-size:.9em;overflow-wrap:anywhere}.meta{max-width:1120px;font-size:13px;color:var(--muted)}.meta p{margin-bottom:8px}.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:24px 0 12px}.toolbar strong{font-size:14px}.hint{color:var(--muted);font-size:13px;flex:1}.toolbar button{background:var(--surface);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:13px;padding:7px 12px;border-radius:6px;cursor:pointer}.toolbar button:hover{background:var(--hover)}:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.table-scroll{max-height:76vh;overflow:auto;background:var(--surface);border:1px solid var(--line);scrollbar-gutter:stable;overscroll-behavior:contain}table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%;font-size:14px;line-height:1.65}th,td{padding:16px 20px;vertical-align:top;overflow-wrap:break-word;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left}thead th{position:sticky;top:0;z-index:3;background:var(--header);font-size:12px;line-height:1.5;font-weight:650;letter-spacing:.02em;padding-right:24px}tbody th{white-space:nowrap;position:sticky;left:0;z-index:2;background:var(--surface);font-size:14px;font-weight:650}thead th:first-child{left:0;z-index:4}tbody tr:hover td,tbody tr:hover th{background:var(--hover)}tr:last-child td,tr:last-child th{border-bottom:0}th:last-child,td:last-child{border-right:0}td br{display:block;content:"";margin-bottom:12px}td:nth-child(8){font-variant-numeric:tabular-nums}td a{font-size:13px}.resize{position:absolute;inset:0 -4px 0 auto;width:12px;border:0;padding:0;background:transparent;cursor:col-resize;z-index:5}.resize:after{content:"";position:absolute;inset:10px 4px;width:2px;background:var(--line)}.resize:hover:after,.resize:focus-visible:after{background:var(--accent)}.resize:focus-visible{outline-offset:-3px}.resizing{cursor:col-resize;user-select:none}.footer{max-width:1120px;font-size:13px;color:var(--muted)}.source{font-size:13px;white-space:nowrap}.table-scroll:focus-visible{outline-offset:3px}
+@media(max-width:600px){main{padding-top:20px}.toolbar{gap:8px}.hint{flex-basis:100%}.table-scroll{max-height:78vh}th,td{padding:14px 16px}}
+@media print{body{background:white;color:black}.table-scroll{max-height:none;overflow:visible;border:0}table{width:100%!important;table-layout:auto;font-size:9px}col{width:auto!important}thead th,tbody th{position:static}.toolbar,.resize{display:none}main{padding:0}.meta,.footer{color:inherit}}
+</style>
+</head>
+<body>
+<main>
+<h1>@@TITLE@@</h1>
+<div class="meta">@@INTRO@@</div>
+<div class="toolbar">
+<strong>@@COUNT@@ benchmarks</strong>
+<span class="hint">Scroll across for all details. Drag column edges to resize.</span>
+<button type="button" id="autosize">Auto-size columns</button>
+<a class="source" href="@@SOURCE@@">Markdown source</a>
+</div>
+<div class="table-scroll" tabindex="0" role="region" aria-label="Benchmark comparison; scroll horizontally to read all nine columns">
+<table aria-label="All benchmarks, sources, evaluation conditions and model scores">
+<colgroup>@@COLS@@</colgroup>
+<thead><tr>@@HEADERS@@</tr></thead>
+<tbody>@@ROWS@@</tbody>
+</table>
+</div>
+<div class="footer">@@FOOTER@@</div>
+</main>
+<script>
+(() => {
+  const table = document.querySelector('table');
+  const viewport = document.querySelector('.table-scroll');
+  const cols = Array.from(table.querySelectorAll('col'));
+  const headers = Array.from(table.querySelectorAll('thead th'));
+  const min = [210,190,240,160,260,300,340,420,290];
+  const max = [230,250,320,230,350,390,440,600,390];
+  let widths = [];
+  let manual = false;
+  let dragging = null;
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+  function apply() {
+    cols.forEach((col,i) => {col.style.width = widths[i] + 'px';});
+    table.style.width = widths.reduce((sum,x) => sum + x,0) + 'px';
+  }
+  function autoSize() {
+    widths = cols.map((_,i) => {
+      const cells = Array.from(table.rows).map(row => row.cells[i]);
+      const lines = cells.flatMap(cell => cell.innerText.split('\n')).filter(Boolean);
+      const measured = Math.max(...lines.map(line => measure.measureText(line).width));
+      const longestWord = Math.max(...lines.flatMap(line => line.split(/\s+/)).map(word => measure.measureText(word).width));
+      return Math.round(Math.min(max[i],Math.max(min[i],longestWord + 42,measured * (i === 7 ? .9 : .5) + 40)));
+    });
+    const available = viewport.clientWidth - widths.reduce((sum,x) => sum + x,0);
+    if(available > 0) {
+      const total = widths.reduce((sum,x) => sum + x,0);
+      widths = widths.map(width => Math.round(width + available * width / total));
+    }
+    apply();
+  }
+  headers.forEach((header,i) => {
+    const handle = header.querySelector('.resize');
+    handle.addEventListener('pointerdown',event => {
+      if(event.button !== 0) return;
+      event.preventDefault();
+      manual = true;
+      dragging = {i,x:event.clientX,width:widths[i]};
+      handle.setPointerCapture(event.pointerId);
+      document.body.classList.add('resizing');
+    });
+    handle.addEventListener('pointermove',event => {
+      if(!dragging || dragging.i !== i) return;
+      widths[i] = Math.max(140,dragging.width + event.clientX - dragging.x);
+      apply();
+    });
+    const stop = () => {dragging = null;document.body.classList.remove('resizing');};
+    handle.addEventListener('pointerup',stop);
+    handle.addEventListener('pointercancel',stop);
+    handle.addEventListener('lostpointercapture',stop);
+    handle.addEventListener('dblclick',() => {manual=false;autoSize();});
+    handle.addEventListener('keydown',event => {
+      if(!['ArrowLeft','ArrowRight'].includes(event.key)) return;
+      event.preventDefault();manual=true;
+      widths[i] = Math.max(140,widths[i] + (event.key === 'ArrowRight' ? 24 : -24));
+      apply();
+    });
+  });
+  document.getElementById('autosize').addEventListener('click',() => {manual=false;autoSize();});
+  new ResizeObserver(() => {if(!manual) autoSize();}).observe(viewport);
+  autoSize();
+})();
+</script>
+</body>
+</html>

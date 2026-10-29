@@ -1,0 +1,4 @@
+interface:
+  display_name: "论文全文精读"
+  short_description: "阅读全文与图表，提炼作者机构、研究问题、核心方法、实验结果和局限"
+  default_prompt: "Use $paper-reader to read the full paper and produce an evidence-grounded research brief."
