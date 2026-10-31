@@ -115,6 +115,6 @@ For scores, cite the actual paper version, pinned repository file/tag, or offici
 - [GitHub Releases API](https://docs.github.com/en/rest/releases/releases#list-releases)
 - [GitHub CLI API requests](https://cli.github.com/manual/gh_api)
 
-## Paper Search migration and distinct contributions
+## Distinct research contributions
 
-New evidence is stored in artifacts/paper-search/fetches/. The ledger remains artifacts/benchmark-searcher/history.jsonl for backward compatibility. For a new model/method paper, compare versionless paper IDs and its contribution: sharing a repository, foundation model or evaluation dataset with a previous paper does not make it a duplicate. Preserve benchmark/dataset family checks for repeated suites and minor data versions. Helper repository matches are review flags only. A later paper about an old suite is not a new benchmark, but a genuinely new method using that suite can be new research. Every delivered identity has one primary item_type.
+New evidence is stored in artifacts/paper-search/fetches/. The history ledger is stored at artifacts/benchmark-searcher/history.jsonl. For a new model/method paper, compare versionless paper IDs and its contribution: sharing a repository, foundation model or evaluation dataset with a previous paper does not make it a duplicate. Preserve benchmark/dataset family checks for repeated suites and minor data versions. Helper repository matches are review flags only. A later paper about an old suite is not a new benchmark, but a genuinely new method using that suite can be new research. Every delivered identity has one primary item_type.

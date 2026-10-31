@@ -51,11 +51,11 @@ Perform applicable arXiv, GitHub and official-site searches before selecting fin
 
 New source fetches go under `<storage-root>/artifacts/paper-search/fetches/`. Download full texts only for shortlisted papers, not all search hits. Fetchers never append history or accept candidates automatically. `matched_areas` are keyword routes, not final scholarly classification.
 
-## Persistent non-repetition and migration
+## Persistent non-repetition
 
 Keep runtime evidence outside the skill folder. Resolve the real installed directory; under a notes repository's `scripts/workflows/`, use that repository as storage root; otherwise default to the active workspace or an explicitly provided shared root.
 
-**Keep the existing ledger at `<storage-root>/artifacts/benchmark-searcher/history.jsonl`.** This intentionally retained legacy storage path prevents the rename from losing years of exclusions. Do not move, truncate or rewrite it just to match the new skill name. New fetches use `artifacts/paper-search/fetches/`; old reports/fetches remain valid evidence. Read relevant legacy reports and prior conversation results when reconstructing incomplete history; disclose unavailable history.
+Keep the persistent ledger at `<storage-root>/artifacts/benchmark-searcher/history.jsonl` and source fetches under `<storage-root>/artifacts/paper-search/fetches/`. Preserve existing history bytes. Read relevant prior reports and conversation results when reconstructing incomplete history; disclose unavailable history.
 
 Normalize versionless arXiv IDs/DOIs, canonical project URLs and GitHub owner/repo identities. `scripts/benchmark_history.py --history <ledger> --identity <URL-or-ID>` remains a backward-compatible helper name; matches are **review flags**, not automatic whole-repository exclusions. Two papers in a shared model repository can have distinct contributions. For benchmarks/datasets, preserve family deduplication across aliases and minor versions; for new model/method papers, compare the paper and substantive contribution instead of excluding everything sharing its repository or evaluated datasets. Do not count a revised paper, mirror or renamed project twice.
 
