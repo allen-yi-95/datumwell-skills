@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch GitHub discovery candidates or selected repo evidence; never write history.
 
-Search both created and pushed dates. Neither is a verified benchmark release.
+Search both created and pushed dates. Neither is a verified paper/research release.
 Use --repo for metadata, README and paginated Releases of selected candidates.
 """
 
@@ -82,8 +82,8 @@ def main(argv=None):
     if args.dry_run:
         print(json.dumps({"queries": queries, "selected_repositories": args.repo}, indent=2))
         return 0
-    base = args.storage_root.resolve() / "artifacts/benchmark-searcher"
-    history, warning = load_records(base / "history.jsonl")
+    base = args.storage_root.resolve() / "artifacts/paper-search"
+    history, warning = load_records(args.storage_root.resolve() / "artifacts/benchmark-searcher/history.jsonl")
     fetches = base / "fetches"
     fetches.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=datetime.now(LOCAL_TZ).strftime("%Y-%m-%d_%H%M%S-github-"), dir=fetches))

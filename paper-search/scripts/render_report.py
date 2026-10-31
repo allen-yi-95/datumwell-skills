@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a benchmark-searcher Markdown table as a self-contained HTML report."""
+"""Render a legacy benchmark Markdown table as a self-contained HTML report."""
 
 import argparse
 import html
@@ -57,15 +57,7 @@ def render(source, destination):
     title = next(line[2:] for line in lines[:indices[0]] if line.startswith('# '))
     intro = [line for line in lines[:indices[0]] if not line.startswith('# ')]
     header_html = ''.join(f'<th scope="col"><span>{inline(value)}</span><button class="resize" type="button" aria-label="Resize {html.escape(value, quote=True)} column; use left and right arrow keys"></button></th>' for value in headers)
-    rendered_rows = []
-    for row in rows:
-        cells = []
-        for i, value in enumerate(row):
-            tag = 'th' if i == 0 else 'td'
-            attributes = ' scope="row"' if i == 0 else ''
-            cells.append(f'<{tag}{attributes}>{inline(value)}</{tag}>')
-        rendered_rows.append('<tr>' + ''.join(cells) + '</tr>')
-    row_html = '\n'.join(rendered_rows)
+    row_html = '\n'.join('<tr>' + ''.join(f'<{"th scope=\"row\"" if i == 0 else "td"}>{inline(value)}</{"th" if i == 0 else "td"}>' for i, value in enumerate(row)) + '</tr>' for row in rows)
     template = (Path(__file__).resolve().parent.parent / 'assets' / 'report.html').read_text()
     replacements = {
         '@@TITLE@@': html.escape(title),

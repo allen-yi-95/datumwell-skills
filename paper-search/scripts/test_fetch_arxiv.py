@@ -72,6 +72,24 @@ class FetchTests(unittest.TestCase):
         self.assertEqual(event["timestamp"], "2026-10-18T01:00:00Z")
         self.assertEqual(fetch.normalize_id("https://arxiv.org/pdf/2610.12345v3.pdf?x=1#p2"), "2610.12345")
 
+    def test_frontier_methods_are_discovered_without_evaluation_keywords(self):
+        cases = {
+            "agents": ("Persistent agent memory", "A new tool use architecture.", "cs.AI"),
+            "robotics": ("Robot learning", "An adaptive manipulation policy.", "cs.RO"),
+            "foundation-models": ("Large language models", "A new recipe for foundation models.", "cs.CL"),
+            "multimodal": ("World models", "Learning visual representations from interaction.", "cs.CV"),
+            "ai-systems": ("Efficient serving", "A speculative decoding kernel.", "cs.DC"),
+            "safety": ("Interpreting neural circuits", "Mechanistic interpretability of alignment.", "cs.LG"),
+        }
+        for area, (title, abstract, category) in cases.items():
+            with self.subTest(area=area):
+                self.assertTrue(fetch.matches_area({"title": title, "abstract": abstract, "categories": [category]}, area))
+                query = fetch.build_query(area, date(2026, 10, 25), date(2026, 10, 31))
+                self.assertNotIn('ti:"benchmark"', query)
+                self.assertNotIn('ti:"testbed"', query)
+        # Benchmark discovery remains available as its own route.
+        self.assertIn('ti:"benchmark"', fetch.build_query("benchmark-general", date(2026, 10, 25), date(2026, 10, 31)))
+
     def test_shanghai_query_dates(self):
         query = fetch.build_query("robotics", date(2026, 10, 18), date(2026, 10, 19))
         self.assertIn("submittedDate:[202610171600 TO 202610191559]", query)
@@ -114,7 +132,41 @@ class FetchTests(unittest.TestCase):
                 code = fetch.main(["--storage-root", d, "--until", "2026-10-19"])
             result = json.loads(Path(json.loads(output.getvalue())["index"]).read_text())
             self.assertEqual(code, 0)
-            self.assertEqual(result["papers"][0]["matched_areas"], ["3d-cad"])
+            self.assertEqual(result["papers"][0]["matched_areas"], ["3d-cad", "benchmark-general"])
+            self.assertFalse((Path(d) / "artifacts/benchmark-searcher/history.jsonl").exists())
+
+    def test_data_and_judge_methods_do_not_need_benchmark_keywords(self):
+        cases = [
+            ("data", "OpenCorpus", "A multilingual corpus with new data curation.", ["cs.CL"]),
+            ("evaluation-methods", "Auditing judges", "We measure judge reliability under prompt changes.", ["cs.AI"]),
+            ("benchmark-general", "Clinical reasoning", "A new benchmark for diagnostic reasoning.", ["cs.CL"]),
+        ]
+        for area, title, abstract, categories in cases:
+            with self.subTest(area=area):
+                paper = {"title": title, "abstract": abstract, "categories": categories}
+                self.assertTrue(fetch.matches_area(paper, area))
+                self.assertFalse(fetch.matches_area(paper, "robotics"))
+                self.assertFalse(fetch.matches_area(paper, "agents"))
+                self.assertFalse(fetch.matches_area({**paper, "categories": ["astro-ph.GA"]}, area))
+
+    def test_data_query_omits_evaluation_gate_and_keeps_date_window(self):
+        query = fetch.build_query("data", date(2026, 10, 25), date(2026, 10, 31))
+        self.assertIn('ti:"dataset"', query)
+        self.assertNotIn('ti:"benchmark"', query)
+        self.assertNotIn('ti:"evaluation"', query)
+        self.assertIn("submittedDate:[202610241600 TO 202610311559]", query)
+        self.assertNotIn("AND ()", query)
+
+    def test_default_fetch_retains_dataset_without_model_scores(self):
+        payload = feed().replace(b"A New Benchmark", b"OpenCorpus").replace(
+            b"Robot agent evaluation.", b"A corpus for multilingual language modeling.")
+        with tempfile.TemporaryDirectory() as d:
+            output = io.StringIO()
+            with patch.object(fetch.Client, "get", return_value=payload), redirect_stdout(output), redirect_stderr(io.StringIO()):
+                code = fetch.main(["--storage-root", d, "--until", "2026-10-19"])
+            result = json.loads(Path(json.loads(output.getvalue())["index"]).read_text())
+            self.assertEqual(code, 0)
+            self.assertEqual(result["papers"][0]["matched_areas"], ["data"])
             self.assertFalse((Path(d) / "artifacts/benchmark-searcher/history.jsonl").exists())
 
     def test_error_feed_is_not_empty_success(self):
@@ -146,7 +198,7 @@ class FetchTests(unittest.TestCase):
             self.assertEqual(result["papers"][0]["matched_areas"], ["robotics", "agents"])
             self.assertEqual(result["new_candidate_ids"], [])  # v2 is not a new paper.
             self.run_fetch(root, feed())
-            self.assertEqual(len(list((ledger.parent / "fetches").glob("*/index.json"))), 2)
+            self.assertEqual(len(list((root / "artifacts/paper-search/fetches").glob("*/index.json"))), 2)
             self.assertEqual(ledger.read_text(), original)
 
     def test_truncation_and_old_first_submission(self):

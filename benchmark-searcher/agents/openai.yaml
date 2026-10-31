@@ -1,4 +1,0 @@
-interface:
-  display_name: "Benchmark Searcher"
-  short_description: "Find new benchmarks across arXiv, official sites and GitHub"
-  default_prompt: "Use $benchmark-searcher to find benchmarks released in the latest 7 calendar days in robotics, agents, long-horizon tasks, continual learning, personalization, and 3D/Blender/CAD across arXiv, official project websites and GitHub, excluding prior benchmark families and presenting the complete concise area-grouped findings with verified dates, methods and sourced model scores directly in chat, without creating report files; maintain the existing deduplication ledger separately."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Search"
+  short_description: "Find fresh frontier AI papers and evidence-backed research topics"
+  default_prompt: "Use $paper-search to find interesting new frontier AI papers using live arXiv, official projects and GitHub. Prioritize unseen work from the latest 24–48 hours within a seven-day discovery window across models, reasoning, multimodal AI, systems, safety, data/evaluation and the established application interests. Read substantive evidence, preserve the legacy deduplication ledger, and deliver concise sourced findings directly in chat without standalone report files."

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fetch fresh arXiv benchmark candidates using curl; no model scoring.
+"""Fetch fresh frontier AI paper candidates using curl; no model scoring.
 
 Every invocation makes live API requests (except --dry-run). Raw Atom pages and
-an index go under artifacts/benchmark-searcher/fetches/. Never writes the ledger.
+an index go under artifacts/paper-search/fetches/. Never writes the ledger.
 API reference: https://info.arxiv.org/help/api/user-manual.html
 Rate limits: https://info.arxiv.org/help/api/tou.html
 """
@@ -53,7 +53,49 @@ AREAS = {
                   "procedural modeling", "procedural modelling", "mesh generation", "text-to-mesh",
                   "text-to-CAD", "image-to-CAD", "B-rep", "assembly design", "mechanism design"],
     },
+    "data": {
+        "categories": ["cs.AI", "cs.CL", "cs.CV", "cs.LG", "cs.IR", "cs.RO", "cs.HC", "cs.DB", "stat.ML"],
+        "terms": ["dataset", "datasets", "corpus", "corpora", "data curation", "data quality",
+                  "data annotation", "synthetic data", "data synthesis", "data selection",
+                  "data filtering", "data deduplication", "data contamination", "training data",
+                  "preference data", "instruction data"],
+        "evaluation_terms": [],
+    },
+    "benchmark-general": {
+        "categories": ["cs.AI", "cs.CL", "cs.CV", "cs.LG", "cs.IR", "cs.HC", "cs.SE", "stat.ML"],
+        "terms": ["benchmark", "benchmarks", "testbed", "evaluation suite", "test suite"],
+        "evaluation_terms": [],
+    },
+    "evaluation-methods": {
+        "categories": ["cs.AI", "cs.CL", "cs.CV", "cs.LG", "cs.IR", "cs.HC", "cs.SE", "stat.ML"],
+        "terms": ["evaluation methodology", "evaluation reliability", "evaluation protocol",
+                  "evaluation metric", "evaluation metrics", "LLM-as-a-judge", "model-as-a-judge",
+                  "judge reliability", "judge bias", "human agreement", "ranking reliability",
+                  "benchmark contamination", "benchmark leakage", "data contamination",
+                  "evaluation harness", "benchmark reproducibility"],
+        "evaluation_terms": [],
+    },
 }
+# Frontier research does not have to introduce or mention a benchmark.
+DEFAULT_EVALUATION_TERMS = []
+AREAS.update({
+    "foundation-models": {
+        "categories": ["cs.AI", "cs.CL", "cs.LG", "stat.ML"],
+        "terms": ["language model", "language models", "LLM", "LLMs", "foundation model", "foundation models", "reasoning", "reinforcement learning", "post-training", "pretraining", "test-time", "architecture", "planning"],
+    },
+    "multimodal": {
+        "categories": ["cs.CV", "cs.CL", "cs.AI", "cs.LG", "cs.SD", "eess.AS"],
+        "terms": ["multimodal", "vision-language", "world model", "world models", "video generation", "speech", "audio", "diffusion"],
+    },
+    "ai-systems": {
+        "categories": ["cs.DC", "cs.DS", "cs.AR", "cs.LG", "cs.AI", "cs.CL"],
+        "terms": ["inference", "serving", "distributed training", "training system", "kernel", "quantization", "speculative decoding", "memory efficiency"],
+    },
+    "safety": {
+        "categories": ["cs.AI", "cs.CL", "cs.LG", "cs.CR", "cs.CY"],
+        "terms": ["alignment", "interpretability", "robustness", "hallucination", "jailbreak", "AI safety", "model privacy", "mechanistic"],
+    },
+})
 NS = {"a": "http://www.w3.org/2005/Atom", "o": "http://a9.com/-/spec/opensearch/1.1/",
       "x": "http://arxiv.org/schemas/atom"}
 LOCAL_TZ = ZoneInfo("Asia/Shanghai")
@@ -76,8 +118,9 @@ def matches_area(paper, area):
     def contains(term):
         phrase = re.sub(r"[-\u2010-\u2015]", " ", term).lower()
         return re.search(r"\b" + re.escape(phrase).replace(r"\ ", r"\s+") + r"\b", text) is not None
+    evaluation_terms = AREAS[area].get("evaluation_terms", DEFAULT_EVALUATION_TERMS)
     return (bool(set(paper["categories"]) & set(AREAS[area]["categories"]))
-            and any(contains(t) for t in ["benchmark", "benchmarks", "evaluation", "testbed"])
+            and (not evaluation_terms or any(contains(t) for t in evaluation_terms))
             and any(contains(t) for t in AREAS[area]["terms"]))
 
 
@@ -87,8 +130,12 @@ def build_query(area, since, until):
     start = datetime.combine(since, day_time.min, LOCAL_TZ).astimezone(timezone.utc)
     end = datetime.combine(until, day_time(23, 59), LOCAL_TZ).astimezone(timezone.utc)
     dates = f"submittedDate:[{start:%Y%m%d%H%M} TO {end:%Y%m%d%H%M}]"
-    evaluation = text_terms(["benchmark", "benchmarks", "evaluation", "testbed"])
-    return f"{categories} AND {dates} AND {evaluation} AND {text_terms(config['terms'])}"
+    clauses = [categories, dates]
+    evaluation_terms = config.get("evaluation_terms", DEFAULT_EVALUATION_TERMS)
+    if evaluation_terms:
+        clauses.append(text_terms(evaluation_terms))
+    clauses.append(text_terms(config["terms"]))
+    return " AND ".join(clauses)
 
 
 def parse_feed(payload):
@@ -158,7 +205,7 @@ class Client:
                         "curl", "--disable", "--fail", "--silent", "--show-error",
                         "--location", "--compressed", "--proto", "=https",
                         "--proto-redir", "=https", "--max-time", str(self.timeout),
-                        "--user-agent", "benchmark-searcher/1.0 (personal research; curl)",
+                        "--user-agent", "paper-search/2.0 (personal research; curl)",
                         "--header", "Cache-Control: no-cache",
                         "--dump-header", str(headers_path), "--url", url,
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -213,8 +260,9 @@ def main(argv=None):
     if args.dry_run:
         print(json.dumps(queries, indent=2))
         return 0
-    report_dir = args.storage_root.resolve() / "artifacts/benchmark-searcher"
-    history_path = report_dir / "history.jsonl"
+    report_dir = args.storage_root.resolve() / "artifacts/paper-search"
+    # Keep the legacy ledger stable across the skill rename.
+    history_path = args.storage_root.resolve() / "artifacts/benchmark-searcher/history.jsonl"
     history, warning = load_history(history_path)
     fetch_dir = report_dir / "fetches"
     fetch_dir.mkdir(parents=True, exist_ok=True)

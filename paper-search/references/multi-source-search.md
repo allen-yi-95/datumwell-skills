@@ -1,22 +1,22 @@
-# Multi-source benchmark discovery
+# Multi-source paper discovery
 
 ## GitHub and official project sites
 
-Discover candidates broadly, then verify official ownership and release evidence. GitHub has no search qualifier that establishes a repository as the introducing team's official benchmark. Stars, recent activity, a matching name or an organization account alone do not establish this.
+Discover candidates broadly, then verify official ownership and release evidence. GitHub has no search qualifier that establishes a repository as the introducing team's official research project. Stars, recent activity, a matching name or an organization account alone do not establish this.
 
 ### GitHub searches
 
-Use repository name, description **and README** (`in:name,description,readme`). Search both `created` and `pushed`: the first finds newly created repos; the second catches pre-existing repos with newly published content. Neither timestamp is the benchmark's release date, and an old private repo becoming public may escape both routes. Supplement with official website announcements and known authors/organizations.
+Use repository name, description **and README** (`in:name,description,readme`). Search both `created` and `pushed`: the first finds newly created repos; the second catches pre-existing repos with newly published content. Neither timestamp is the paper/contribution's release date, and an old private repo becoming public may escape both routes. Supplement with official website announcements and known authors/organizations.
 
 Example, replacing dates and selecting terms for the requested domains:
 
 ```bash
 python3 <skill-dir>/scripts/fetch_github.py --storage-root <storage-root> --until YYYY-MM-DD \
-  --query 'robot benchmark' --query 'embodied exam' --query 'agent evaluation' \
-  --query '"long-horizon"' --query '"continual learning" benchmark' --query 'personalization benchmark'
+  --query 'robot learning' --query 'embodied world model' --query 'agent memory' \
+  --query '"long-horizon"' --query '"continual learning"' --query 'personalization'
 ```
 
-Rotate `benchmark`, `bench`, `evaluation`, `eval`, `exam`, `testbed`, `suite`, and terms from the skill's domain table. Do not require one literal evaluation term in every query; broader domain-only or author/organization searches can discover differently named suites. Treat mentions in README related-work lists as leads, not evidence that the repository introduces that suite. Do not impose a minimum star count, coding language or license merely to shrink results.
+Rotate model, reasoning, training, inference, multimodal, safety, data and application terms; benchmark/evaluation are optional topics, not mandatory filters. Do not require one literal evaluation term in every query; broader domain-only or author/organization searches can discover differently named suites. Treat mentions in README related-work lists as leads, not evidence that the repository introduces that suite. Do not impose a minimum star count, coding language or license merely to shrink results.
 
 For the independent `3d-cad` direction, cover both graphics/content creation (Blender, 3D asset/scene generation and editing) and engineering design (CAD, FreeCAD, OpenSCAD, CADQuery, parametric modeling, assemblies and functional mechanisms). Do not require `agent` or `robot` in these queries. For example:
 
@@ -38,15 +38,15 @@ python3 <skill-dir>/scripts/fetch_github.py --storage-root <storage-root> --unti
   --repo OWNER/REPO
 ```
 
-Read the metadata, decoded README (`content` is base64 when `encoding` is `base64`), all retrieved Releases and their linked documentation. Check `readme_error` separately from release-query completeness. Keep release `published_at`, tag and `prerelease`; exclude drafts. Fetch all relevant pages rather than just `/releases/latest`, because “latest” is not a complete release history and excludes some release types. An empty Releases list is not evidence of no public benchmark: inspect README News, dated official announcements and relevant code/data history. Use commit permalinks for file/commit evidence; a Git author/committer timestamp alone does not prove when code became public.
+Read the metadata, decoded README (`content` is base64 when `encoding` is `base64`), all retrieved Releases and their linked documentation. Check `readme_error` separately from release-query completeness. Keep release `published_at`, tag and `prerelease`; exclude drafts. Fetch all relevant pages rather than just `/releases/latest`, because “latest” is not a complete release history and excludes some release types. An empty Releases list is not evidence of no public research release: inspect README News, dated official announcements and relevant code/data history. Use commit permalinks for file/commit evidence; a Git author/committer timestamp alone does not prove when code became public.
 
 ### Official website discovery and ownership
 
-- Run fresh web searches combining requested domains with evaluation synonyms and release/launch terms. Use date filters as discovery aids, then read the actual dated official source. Follow links from arXiv, author/lab pages and repositories to find additional projects.
+- Run fresh web searches combining requested research topics with paper/release/launch terms, including models and methods that reuse existing evaluation suites. Use date filters as discovery aids, then read the actual dated official source. Follow links from arXiv, author/lab pages and repositories to find additional projects.
 - Inspect user-provided project sites directly even when unindexed or marked `noindex`. If static HTML is a shell, render with a browser or inspect its linked JavaScript/JSON for visible protocol/results and outbound links. Do not stop at an empty HTML extract.
 - Prefer a paper or author/lab page linking the repo, a project site linking the repo and the repo linking the project/paper, and author/team identities consistent across them. Save the supporting URLs under `official_evidence`. Weak evidence remains `official_status: unverified`; do not present the repo as confirmed official.
 - A secondary article, social mention or curated list may point to a project. Confirm facts and dates on the introducing team's official site, repository or paper. Official team launch posts are primary announcements; reposts and search-engine timestamps are not.
-- Read task definitions, data/environment construction, evaluation protocol, metrics and scoring artifacts. A landing page claiming “a benchmark” without accessible definitions is a lead, not a fully verified result.
+- Read the contribution, method, evaluation or proof design, limitations and primary result artifacts; for benchmarks also inspect task/protocol/metric definitions. A landing page claiming “a benchmark” without accessible definitions is a lead, not a fully verified result.
 
 Save selected HTML/JSON/text snapshots, URLs, fetch timestamps and any failed checks under the run's `fetches/` directory. GitHub and site sources supplement arXiv; they are independent discovery channels, not only fallbacks when arXiv returns too few papers.
 
@@ -56,8 +56,8 @@ Record separate source events with `source`, `date`, `url`, `verified`, and `eve
 
 | Source | Date evidence | Interpretation |
 | --- | --- | --- |
-| `arxiv_v1` | Atom `published` and v1 submission history | First arXiv submission of this paper; not necessarily first public benchmark release. |
-| `project_announcement` | Dated official announcement explicitly introducing the benchmark | Official project launch date; distinguish initial launch from later updates. |
+| `arxiv_v1` | Atom `published` and v1 submission history | First arXiv submission of this paper; not necessarily first public research release release. |
+| `project_announcement` | Dated official announcement explicitly introducing the research contribution | Official project launch date; distinguish initial launch from later updates. |
 | `github_release` | Release `published_at` | Date this release was published; retain tag, `prerelease` and original timestamp. Inspect whether it introduces the suite or updates an old one. |
 | `github_code_publication` | Explicit dated code/data launch notice with repository/commit evidence | Code/data availability event; not automatically the original benchmark introduction. |
 
@@ -65,16 +65,17 @@ Record separate source events with `source`, `date`, `url`, `verified`, and `eve
 
 Use the user's timezone, default Asia/Shanghai, for window comparisons when timestamps exist; retain the original timestamp. For date-only announcements retain that date, mark `precision: day`, and keep its timezone unknown if unstated rather than inventing one. The GitHub helper searches with a one-day buffer for discovery and computes release-event window membership in Asia/Shanghai; neither `in_window: true` nor its collected release date verifies benchmark introduction.
 
-A benchmark's `first_release` is the earliest **verified public introduction of that same benchmark known from checked evidence**, not proof of absolute first publication. Set `first_release_basis` to the supporting event/source. If an official website launched an old suite before this window, a new arXiv paper or code release does not make the suite a new benchmark. Do not exclude a newly introduced suite merely because its repository was created earlier. Major successors need task/data/protocol evidence and a link to the predecessor. Undated leads may be noted separately as “发布日期未核实”; do not count them toward fresh results or silently use the discovery date.
+A benchmark's `first_release` is the earliest **verified public introduction of that same benchmark known from checked evidence**, not proof of absolute first publication. Set `first_release_basis` to the supporting event/source. If an official website launched an old suite before this window, a new revision or code release does not make the same contribution new. Do not exclude a newly introduced suite merely because its repository was created earlier. Major successors need task/data/protocol evidence and a link to the predecessor. Undated leads may be noted separately as “发布日期未核实”; do not count them toward fresh results or silently use the discovery date.
 
 ### Extended ledger (new entries)
 
 ```json
 {
   "schema_version": 2,
-  "name": "Official benchmark name",
+  "name": "Official paper or contribution title",
+  "item_type": "method",
   "aliases": [],
-  "family": "Benchmark family",
+  "family": "Research contribution identity",
   "identifiers": ["arxiv:2610.12345", "repo:team/benchmark"],
   "canonical_urls": ["https://official-project.example/", "https://github.com/team/benchmark", "https://arxiv.org/abs/2610.12345"],
   "first_release": "2026-10-14",
@@ -103,7 +104,7 @@ The read-only `benchmark_history.py` helper matches versionless arXiv IDs, DOI, 
 Keep the skill's concise area-grouped list and three sub-bullets. Label dates in the introduction, for example:
 
 - `官网首发 10 月 14 日；arXiv v1 10 月 16 日；代码发布 10 月 18 日`.
-- `GitHub Release 10 月 18 日（预发布）；未找到 arXiv 论文` when that release verifiably introduces the benchmark.
+- `GitHub Release 10 月 18 日（预发布）；未找到 arXiv 论文` when that release verifiably introduces the research contribution.
 
 For scores, cite the actual paper version, pinned repository file/tag, or official leaderboard snapshot with check timestamp. Clearly separate paper results from later official scores and preserve protocol differences. State `官方来源未报告模型成绩` when applicable. Do not infer publication or task success from site build dates, badges, plots or repository popularity.
 
@@ -113,3 +114,7 @@ For scores, cite the actual paper version, pinned repository file/tag, or offici
 - [GitHub REST search limits and incomplete results](https://docs.github.com/en/rest/search/search)
 - [GitHub Releases API](https://docs.github.com/en/rest/releases/releases#list-releases)
 - [GitHub CLI API requests](https://cli.github.com/manual/gh_api)
+
+## Paper Search migration and distinct contributions
+
+New evidence is stored in artifacts/paper-search/fetches/. The ledger remains artifacts/benchmark-searcher/history.jsonl for backward compatibility. For a new model/method paper, compare versionless paper IDs and its contribution: sharing a repository, foundation model or evaluation dataset with a previous paper does not make it a duplicate. Preserve benchmark/dataset family checks for repeated suites and minor data versions. Helper repository matches are review flags only. A later paper about an old suite is not a new benchmark, but a genuinely new method using that suite can be new research. Every delivered identity has one primary item_type.
